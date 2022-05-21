@@ -64,9 +64,13 @@ runs:
           VERSIONS=$(jq --compact-output <<< "${KUBERNETES}")
         fi
 
-        if jq -e 'length == 1' <<< "${VERSIONS}"; then
+        if [[ $(jq 'length' <<< "${VERSIONS}") == '1' ]]; then
           CHANNEL=$(yq ".${VERSIONS}" <<< "${CHANNELS}")
         fi
+
+        echo "CHANNELS: ${CHANNELS}"
+        echo "CHANNEL:  ${CHANNEL}"
+        echo "VERSIONS: ${VERSIONS}"
 
         echo ::set-output "name=channel::${CHANNEL-}"
         echo ::set-output "name=matrix::${VERSIONS}"
