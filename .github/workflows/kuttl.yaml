@@ -27,6 +27,7 @@ jobs:
     outputs:
       kubernetes: ${{ steps.versions.outputs.versions }}
     steps:
+      - uses: actions/checkout@v2
       - id: versions
         uses: ./.github/actions/google-gke
         with:
@@ -41,6 +42,7 @@ jobs:
       matrix:
         kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
     steps:
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/google-gke
         with:
           action: setup
@@ -59,6 +61,7 @@ jobs:
       matrix:
         kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
     steps:
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/google-gke
         with:
           action: teardown
