@@ -68,10 +68,6 @@ runs:
           CHANNEL=$(yq ".${VERSIONS}" <<< "${CHANNELS}")
         fi
 
-        echo "CHANNELS: ${CHANNELS}"
-        echo "CHANNEL:  ${CHANNEL}"
-        echo "VERSIONS: ${VERSIONS}"
-
         echo ::set-output "name=channel::${CHANNEL-}"
         echo ::set-output "name=matrix::${VERSIONS}"
 
@@ -83,7 +79,7 @@ runs:
     - if: ${{ inputs.stage == 'setup' }}
       shell: bash
       env:
-        CHANNEL: ${{ steps.versions.output.channel }}
+        CHANNEL: ${{ steps.versions.outputs.channel }}
         KUBERNETES: ${{ inputs.k8s-release }}
       run:
         export CLUSTER="ci-v5-${CHANNEL:?}-k${KUBERNETES//.}-gh${GITHUB_RUN_ID}"
