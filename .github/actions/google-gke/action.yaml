@@ -72,6 +72,7 @@ runs:
         echo ::set-output "name=matrix::${VERSIONS}"
 
     - if: ${{ inputs.stage == 'setup' || inputs.stage == 'teardown' }}
+      shell: bash
       run: |
         echo gcloud auth activate-service-account --key-file=FIXME
 
@@ -98,15 +99,18 @@ runs:
           '$ENV | { CLUSTER, PROJECT, ZONE }'
 
     - if: ${{ inputs.stage == 'setup' }}
+      shell: bash
       run: |
         # TODO: store this information somewhere 👆
         # ---- a configmap in a kubernetes runner?
 
     - if: ${{ inputs.stage == 'teardown' }}
+      shell: bash
       run: |
         # TODO: retrieve the cluster information stored during setup
 
     - if: ${{ inputs.stage == 'teardown' }}
+      shell: bash
       run: |
         #export $( jq --raw-output < "gke-cluster-${KUBERNETES}.json" \
         #  'to_entries[] | "\(.key)=\(.value)"' )
