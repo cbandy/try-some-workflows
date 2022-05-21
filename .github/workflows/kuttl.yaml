@@ -29,9 +29,6 @@ jobs:
           echo >> "${GITHUB_STEP_SUMMARY}" '```json'
           jq   >> "${GITHUB_STEP_SUMMARY}" <<< "${JSON}"
           echo >> "${GITHUB_STEP_SUMMARY}" '```'
-          echo >> "${GITHUB_STEP_SUMMARY}" '```yaml'
-          yq   >> "${GITHUB_STEP_SUMMARY}" <<< "${JSON}"
-          echo >> "${GITHUB_STEP_SUMMARY}" '```'
 
   google-gke-matrix:
     if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
