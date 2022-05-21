@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - env: { JSON: "${{ toJSON(github.event.inputs) }}" }
-      - run: |
+        run: |
           echo >> "${GITHUB_STEP_SUMMARY}" '```json'
           jq   >> "${GITHUB_STEP_SUMMARY}" <<< "${JSON}"
           echo >> "${GITHUB_STEP_SUMMARY}" '```'
