@@ -115,7 +115,7 @@ runs:
         #export $( jq --raw-output < "gke-cluster-${KUBERNETES}.json" \
         #  'to_entries[] | "\(.key)=\(.value)"' )
 
-        export $( jq -n --raw-output <<< '{"CLUSTER":"c","ZONE":"z"}' \
+        export $( jq --raw-output <<< '{"CLUSTER":"c","ZONE":"z"}' \
           'to_entries[] | "\(.key)=\(.value)"' )
 
         echo gcloud container clusters delete "${CLUSTER}" \
