@@ -82,7 +82,7 @@ runs:
       env:
         CHANNEL: ${{ steps.versions.outputs.channel }}
         KUBERNETES: ${{ inputs.k8s-release }}
-      run:
+      run: |
         # Create GKE cluster (${{ inputs.k8s-release }})
 
         export CLUSTER="ci-v5-${CHANNEL:?}-k${KUBERNETES//.}-gh${GITHUB_RUN_ID}"
