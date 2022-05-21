@@ -1,0 +1,119 @@
+# https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions
+
+name: Google GKE
+description: Manage a GKE cluster for one job
+
+inputs:
+  stage:
+    required: true
+    description: >
+      One of "setup", "teardown", or "versions"
+
+  k8s-release:
+    default: latest
+    required: true
+    description: >
+      Kubernetes release … "v1.20" … FIXME
+      -- "all" or "latest"
+
+outputs:
+  versions:
+    value: ${{ steps.versions.outputs.matrix }}
+    description: >
+      JSON array of Kubernetes releases understood by GKE
+
+runs:
+  using: composite
+  steps:
+    # Evaluate the requested Kubernetes release.
+    - id: versions
+      name: Check Kubernetes versions
+      shell: bash
+      env:
+        # Recent versions are available only in the Rapid channel.
+        # - https://cloud.google.com/kubernetes-engine/docs/release-schedule
+        CHANNELS: |
+          v1.20: stable
+          v1.21: regular
+          v1.22: rapid
+          v1.23: rapid
+        KUBERNETES: ${{ inputs.k8s-release }}
+      run: |
+        CHANNELS=$(yq -o json <<< "${CHANNELS}")
+        VERSIONS=$(jq --compact-output 'keys' <<< "${CHANNELS}")
+
+        if [[ "${KUBERNETES}" == 'latest' ]]; then
+          VERSIONS=$(jq '.[]' <<< "${VERSIONS}")
+          VERSIONS=$(sort -V <<< "${VERSIONS}")
+          VERSIONS=$(jq '[last]' <<< "${VERSIONS}" --compact-output --slurp)
+
+        elif [[ "${KUBERNETES}" != 'all' ]]; then
+          KUBERNETES=$(xargs -n1 echo <<< "${KUBERNETES//,/ }")
+          KUBERNETES=$(jq --raw-input <<< "${KUBERNETES}" | jq --slurp)
+
+          UNKNOWN=$(jq -n '$ask - $known' \
+            --argjson ask "${KUBERNETES}" \
+            --argjson known "${VERSIONS}")
+
+          if [[ "${UNKNOWN}" != '[]' ]]; then
+            echo >&2 Unexpected Kubernetes versions!
+            echo >&2 "${UNKNOWN}"
+            exit 1
+          fi
+
+          VERSIONS=$(jq --compact-output <<< "${KUBERNETES}")
+        fi
+
+        if jq -e 'length == 1' <<< "${VERSIONS}"; then
+          CHANNEL=$(yq ".${VERSIONS}" <<< "${CHANNELS}")
+        fi
+
+        echo ::set-output "name=channel::${CHANNEL-}"
+        echo ::set-output "name=matrix::${VERSIONS}"
+
+    - if: ${{ inputs.stage == 'setup' || inputs.stage == 'teardown' }}
+      run: |
+        echo gcloud auth activate-service-account --key-file=FIXME
+
+    - if: ${{ inputs.stage == 'setup' }}
+      shell: bash
+      env:
+        CHANNEL: ${{ steps.versions.output.channel }}
+        KUBERNETES: ${{ inputs.k8s-release }}
+      run:
+        export CLUSTER="ci-v5-${CHANNEL:?}-k${KUBERNETES//.}-gh${GITHUB_RUN_ID}"
+        export PROJECT='FIXME'
+        export ZONE='us-east1-b'
+
+        echo gcloud container clusters create "${CLUSTER}" \
+          --project "${PROJECT}" --zone "${ZONE}" \
+          --enable-autorepair \
+          --enable-autoupgrade \
+          --cluster-ipv4-cidr '/19' \
+          --machine-type 'e2-standard-4' --num-nodes 2 \
+          --cluster-version "${KUBERNETES/v}" --node-version "${KUBERNETES/v}" \
+          --release-channel "${CHANNEL}"
+
+        jq --compact-output >> "gke-cluster-${KUBERNETES}.json" \
+          '$ENV | { CLUSTER, PROJECT, ZONE }'
+
+    - if: ${{ inputs.stage == 'setup' }}
+      run: |
+        # TODO: store this information somewhere 👆
+        # ---- a configmap in a kubernetes runner?
+
+    - if: ${{ inputs.stage == 'teardown' }}
+      run: |
+        # TODO: retrieve the cluster information stored during setup
+
+    - if: ${{ inputs.stage == 'teardown' }}
+      run: |
+        #export $( jq --raw-output < "gke-cluster-${KUBERNETES}.json" \
+        #  'to_entries[] | "\(.key)=\(.value)"' )
+
+        export $( jq -n --raw-output <<< '{"CLUSTER":"c","ZONE":"z"}' \
+          'to_entries[] | "\(.key)=\(.value)"' )
+
+        echo gcloud container clusters delete "${CLUSTER}" \
+          --project "${PROJECT}" --zone "${ZONE}" \
+          --quiet

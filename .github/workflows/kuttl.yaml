@@ -1,0 +1,62 @@
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+
+on:
+  workflow_dispatch:
+    inputs:
+      kubernetes-provider:
+        default: GKE
+        required: true
+        type: choice
+        options:
+          - GKE
+          #- OpenShift
+        description: >
+          TODO
+      kubernetes:
+        default: latest
+        required: true
+        type: string
+        description: >
+          TODO
+
+
+jobs:
+  google-gke-matrix:
+    if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
+    outputs:
+      kubernetes: ${{ steps.versions.outputs.versions }}
+    steps:
+      - id: versions
+        uses: ./.github/actions/google-gke
+        with:
+          action: versions
+          k8s-release: ${{ github.event.inputs.kubernetes }}
+
+  google-gke-setup:
+    needs: [google-gke-matrix]
+    strategy:
+      fail-fast: false
+      matrix:
+        kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
+    steps:
+      - uses: ./.github/actions/google-gke
+        with:
+          action: setup
+          k8s-release: ${{ matrix.kubernetes }}
+
+  # TODO: is this helpful? a stable point to "need" regardless of the kubernetes provider.
+  #setup-kubernetes:
+  #  needs:
+  #    - setup-google-gke
+
+  google-gke-teardown:
+    needs: [google-gke-matrix, google-gke-setup]
+    strategy:
+      fail-fast: false
+      matrix:
+        kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
+    steps:
+      - uses: ./.github/actions/google-gke
+        with:
+          action: teardown
+          k8s-release: ${{ matrix.kubernetes }}
