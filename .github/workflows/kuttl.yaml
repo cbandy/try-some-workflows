@@ -31,7 +31,7 @@ jobs:
       - id: versions
         uses: ./.github/actions/google-gke
         with:
-          action: versions
+          stage: versions
           k8s-release: ${{ github.event.inputs.kubernetes }}
 
   google-gke-setup:
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/google-gke
         with:
-          action: setup
+          stage: setup
           k8s-release: ${{ matrix.kubernetes }}
 
   # TODO: is this helpful? a stable point to "need" regardless of the kubernetes provider.
@@ -64,5 +64,5 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/google-gke
         with:
-          action: teardown
+          stage: teardown
           k8s-release: ${{ matrix.kubernetes }}
