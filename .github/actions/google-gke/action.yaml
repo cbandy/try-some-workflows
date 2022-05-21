@@ -27,7 +27,6 @@ runs:
   steps:
     # Evaluate the requested Kubernetes release.
     - id: versions
-      name: Check Kubernetes versions
       shell: bash
       env:
         # Recent versions are available only in the Rapid channel.
@@ -39,6 +38,8 @@ runs:
           v1.23: rapid
         KUBERNETES: ${{ inputs.k8s-release }}
       run: |
+        # Check Kubernetes versions
+
         CHANNELS=$(yq -o json <<< "${CHANNELS}")
         VERSIONS=$(jq --compact-output 'keys' <<< "${CHANNELS}")
 
@@ -82,6 +83,8 @@ runs:
         CHANNEL: ${{ steps.versions.outputs.channel }}
         KUBERNETES: ${{ inputs.k8s-release }}
       run:
+        # Create GKE cluster (${{ inputs.k8s-release }})
+
         export CLUSTER="ci-v5-${CHANNEL:?}-k${KUBERNETES//.}-gh${GITHUB_RUN_ID}"
         export PROJECT='FIXME'
         export ZONE='us-east1-b'
@@ -112,6 +115,8 @@ runs:
     - if: ${{ inputs.stage == 'teardown' }}
       shell: bash
       run: |
+        # Delete GKE cluster
+
         #export $( jq --raw-output < "gke-cluster-${KUBERNETES}.json" \
         #  'to_entries[] | "\(.key)=\(.value)"' )
 
