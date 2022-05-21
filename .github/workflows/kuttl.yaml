@@ -23,6 +23,7 @@ on:
 jobs:
   google-gke-matrix:
     if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
+    runs-on: ubuntu-latest
     outputs:
       kubernetes: ${{ steps.versions.outputs.versions }}
     steps:
@@ -34,6 +35,7 @@ jobs:
 
   google-gke-setup:
     needs: [google-gke-matrix]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -51,6 +53,7 @@ jobs:
 
   google-gke-teardown:
     needs: [google-gke-matrix, google-gke-setup]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
