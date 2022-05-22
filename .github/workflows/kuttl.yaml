@@ -58,13 +58,29 @@ jobs:
           stage: setup
           k8s-release: ${{ matrix.kubernetes }}
 
-  # TODO: is this helpful? a stable point to "need" regardless of the kubernetes provider.
-  #setup-kubernetes:
-  #  needs:
-  #    - setup-google-gke
+  kubernetes-setup:
+    needs:
+      - google-gke-setup
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          # Create namespace, perhaps (somesuch-${{github.run_id}})
+          # Deploy something
+
+  kubernetes-teardown:
+    if: ${{ always() }}
+    needs: [kubernetes-setup]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          # Delete namespace, perhaps (somesuch-${{github.run_id}})
 
   google-gke-teardown:
-    needs: [google-gke-matrix, google-gke-setup]
+    if: ${{ always() }}
+    needs:
+      - google-gke-matrix
+      - google-gke-setup
+      - kubernetes-teardown
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
