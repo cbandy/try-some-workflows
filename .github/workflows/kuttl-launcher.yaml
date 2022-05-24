@@ -117,7 +117,7 @@ jobs:
       postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
 
   # Gather (fan-in) the tests that ran across various Kubernetes releases.
-  tests:
+  test-matrix:
     if: ${{ always() }}
     needs:
       - test-v1.19
@@ -125,13 +125,15 @@ jobs:
       - test-v1.21
       - test-v1.22
       - test-v1.23
+    runs-on: ubuntu-latest
+    steps: [{ run: 'true' }]
 
   google-gke-teardown:
     if: ${{ always() }}
     needs:
       - google-gke-matrix
       - google-gke-setup
-      - tests
+      - test-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
