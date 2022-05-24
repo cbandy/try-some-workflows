@@ -6,12 +6,9 @@ on:
     inputs:
       kubernetes-provider:
         required: true
-        type: choice
-        options:
-          - GKE
-          - OpenShift
+        type: string
         description: >
-          TODO
+          One of "GKE" or "OpenShift"
 
       kubernetes:
         required: true
