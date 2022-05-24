@@ -2,93 +2,105 @@
 
 name: KUTTL
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       kubernetes-provider:
-        default: GKE
         required: true
         type: choice
         options:
           - GKE
-          #- OpenShift
+          - OpenShift
         description: >
           TODO
+
       kubernetes:
-        default: latest
         required: true
         type: string
         description: >
-          TODO
+          The Kubernetes release … FIXME
 
+      base-image-matrix:
+        required: true
+        type: string
+        description: >
+          JSON array of (OS) base images to test
+
+      postgresql-matrix:
+        required: true
+        type: string
+        description: >
+          JSON array of PostgreSQL major versions to test
 
 jobs:
-  parameters:
-    runs-on: ubuntu-latest
-    steps:
-      - env: { JSON: "${{ toJSON(github.event.inputs) }}" }
-        run: |
-          echo >> "${GITHUB_STEP_SUMMARY}" '```json'
-          jq   >> "${GITHUB_STEP_SUMMARY}" <<< "${JSON}"
-          echo >> "${GITHUB_STEP_SUMMARY}" '```'
-
-  google-gke-matrix:
+  google-gke-setup:
     if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
     runs-on: ubuntu-latest
-    outputs:
-      kubernetes: ${{ steps.versions.outputs.versions }}
     steps:
-      - uses: actions/checkout@v2
-      - id: versions
-        uses: ./.github/actions/google-gke
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/google-gke
         with:
-          stage: versions
+          stage: setup
           k8s-release: ${{ github.event.inputs.kubernetes }}
 
-  google-gke-setup:
-    needs: [google-gke-matrix]
+  test-ubi8:
+    if: ${{ contains(fromJSON(github.event.inputs.base-image-matrix), 'ubi8') }}
+    needs:
+      - google-gke-setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
+        postgresql: ${{ fromJSON(github.event.inputs.postgresql-matrix) }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/google-gke
-        with:
-          stage: setup
-          k8s-release: ${{ matrix.kubernetes }}
+      - uses: actions/checkout@v3
+      - id: namespace
+        run: |
+          # Create namespace, perhaps 'gh${{github.run_id}}-${{matrix.base-image}}-${{matrix.postgresql}}'
+          echo ::set-output 'name=name::gh${{github.run_id}}-${{matrix.base-image}}-${{matrix.postgresql}}'
 
-  kubernetes-setup:
+      - uses: actions/checkout@v3
+        with:
+          repository: CrunchyData/postgres-operator
+          path: work/postgres-operator
+          # TODO: select a git-ref for the installer and tests
+          # FIXME: should these two things be separate?
+
+      - run: |
+          echo Deploy to '${{ steps.namespace.outputs.name }}'
+          # TODO: calculate related images from '${{ matrix.base-image }}'
+          make -C work/postgres-operator --dry-run deploy
+
+      - env:
+          KUTTL_PG_VERSION: ${{ inputs.postgresql }}
+        run: |
+          make -C work/postgres-operator --dry-run generate-kuttl check-kuttl
+
+      - if: ${{ always() }}
+        run: |
+          # TODO: delete and wait for KUTTL namespaces…
+          # Delete namespace
+          echo kubectl delete namespace '${{ steps.namespace.output.name }}'
+
+  test-ubi9:
+    if: ${{ contains(fromJSON(github.event.inputs.base-image-matrix), 'ubi9') }}
     needs:
       - google-gke-setup
     runs-on: ubuntu-latest
     steps:
       - run: |
-          # Create namespace, perhaps (somesuch-${{github.run_id}})
-          # Deploy something
-
-  kubernetes-teardown:
-    if: ${{ always() }}
-    needs: [kubernetes-setup]
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          # Delete namespace, perhaps (somesuch-${{github.run_id}})
+          echo >&2 Not implemented!
+          exit 1
 
   google-gke-teardown:
     if: ${{ always() }}
     needs:
-      - google-gke-matrix
       - google-gke-setup
-      - kubernetes-teardown
+      - test-ubi8
+      - test-ubi9
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/google-gke
         with:
           stage: teardown
-          k8s-release: ${{ matrix.kubernetes }}
+          k8s-release: ${{ github.event.inputs.kubernetes }}

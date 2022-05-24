@@ -1,0 +1,145 @@
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+
+name: KUTTL Launcher
+on:
+  workflow_dispatch:
+    inputs:
+      kubernetes-provider:
+        default: GKE
+        required: true
+        type: choice
+        options:
+          - GKE
+          - OpenShift
+        description: >
+          TODO
+      kubernetes:
+        default: latest
+        required: true
+        type: string
+        description: >
+          TODO
+
+jobs:
+  parameters:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { JSON: "${{ toJSON(github.event.inputs) }}" }
+        run: |
+          echo >> "${GITHUB_STEP_SUMMARY}" '```json'
+          jq   >> "${GITHUB_STEP_SUMMARY}" <<< "${JSON}"
+          echo >> "${GITHUB_STEP_SUMMARY}" '```'
+
+  component-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      base-image: '["ubi8"]'
+      postgresql: '[10,11,12,13,14]'
+    steps:
+      - run: |
+          # TODO: Compare to event inputs; "all", "latest", etc.
+
+  google-gke-matrix:
+    if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
+    runs-on: ubuntu-latest
+    outputs:
+      kubernetes: ${{ steps.versions.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: versions
+        uses: ./.github/actions/google-gke
+        with:
+          stage: versions
+          k8s-release: ${{ github.event.inputs.kubernetes }}
+
+  # Gather (fan-in) the various Kubernetes providers
+  # and the Kubernetes releases they support.
+  kubernetes-matrix:
+    needs:
+      - google-gke-matrix
+    runs-on: ubuntu-latest
+    outputs:
+      kubernetes: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - id: versions
+        env:
+          GOOGLE_GKE: ${{ needs.google-gke-matrix.outputs.kubernetes }}
+        run: |
+          VERSIONS=$(jq -n '$gke + []' \
+            --argjson gke "${GOOGLE_GKE:-[]}" \
+            --compact-output)
+
+          echo ::set-output "name=matrix::${VERSIONS}"
+
+  test-v1.19:
+    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.19') }}
+    needs: [component-matrix, kubernetes-matrix]
+    uses: ./.github/workflows/kuttl.yaml
+    with:
+      kubernetes: v1.19
+      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
+      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+
+  test-v1.20:
+    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.20') }}
+    needs: [component-matrix, kubernetes-matrix]
+    uses: ./.github/workflows/kuttl.yaml
+    with:
+      kubernetes: v1.20
+      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
+      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+
+  test-v1.21:
+    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.21') }}
+    needs: [component-matrix, kubernetes-matrix]
+    uses: ./.github/workflows/kuttl.yaml
+    with:
+      kubernetes: v1.21
+      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
+      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+
+  test-v1.22:
+    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.22') }}
+    needs: [component-matrix, kubernetes-matrix]
+    uses: ./.github/workflows/kuttl.yaml
+    with:
+      kubernetes: v1.22
+      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
+      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+
+  test-v1.23:
+    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.23') }}
+    needs: [component-matrix, kubernetes-matrix]
+    uses: ./.github/workflows/kuttl.yaml
+    with:
+      kubernetes: v1.23
+      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
+      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+
+  # Gather (fan-in) the tests that ran across various Kubernetes releases.
+  tests:
+    if: ${{ always() }}
+    needs:
+      - test-v1.19
+      - test-v1.20
+      - test-v1.21
+      - test-v1.22
+      - test-v1.23
+
+  google-gke-teardown:
+    if: ${{ always() }}
+    needs:
+      - google-gke-matrix
+      - google-gke-setup
+      - tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/google-gke
+        with:
+          stage: teardown
+          k8s-release: ${{ matrix.kubernetes }}
