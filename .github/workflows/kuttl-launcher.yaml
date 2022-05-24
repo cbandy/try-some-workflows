@@ -66,7 +66,6 @@ jobs:
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.19
-      kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
       base-image-matrix: ${{ needs.parameters.outputs.base-image }}
       postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
@@ -76,7 +75,6 @@ jobs:
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.20
-      kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
       base-image-matrix: ${{ needs.parameters.outputs.base-image }}
       postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
@@ -86,7 +84,6 @@ jobs:
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.21
-      kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
       base-image-matrix: ${{ needs.parameters.outputs.base-image }}
       postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
@@ -96,7 +93,6 @@ jobs:
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.22
-      kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
       base-image-matrix: ${{ needs.parameters.outputs.base-image }}
       postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
@@ -106,6 +102,5 @@ jobs:
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.23
-      kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
       base-image-matrix: ${{ needs.parameters.outputs.base-image }}
       postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}

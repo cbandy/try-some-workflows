@@ -4,12 +4,6 @@ name: KUTTL
 on:
   workflow_call:
     inputs:
-      kubernetes-provider:
-        required: true
-        type: string
-        description: >
-          One of "GKE" or "OpenShift"
-
       kubernetes:
         required: true
         type: string
@@ -37,23 +31,23 @@ jobs:
       - uses: ./.github/actions/google-gke
         with:
           stage: setup
-          k8s-release: ${{ github.event.inputs.kubernetes }}
+          k8s-release: ${{ inputs.kubernetes }}
 
   test-ubi8:
-    if: ${{ contains(fromJSON(github.event.inputs.base-image-matrix), 'ubi8') }}
+    if: ${{ contains(fromJSON(inputs.base-image-matrix), 'ubi8') }}
     needs:
       - google-gke-setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        postgresql: ${{ fromJSON(github.event.inputs.postgresql-matrix) }}
+        postgresql: ${{ fromJSON(inputs.postgresql-matrix) }}
     steps:
       - uses: actions/checkout@v3
       - id: namespace
         run: |
-          # Create namespace, perhaps 'gh${{github.run_id}}-${{matrix.base-image}}-${{matrix.postgresql}}'
-          echo ::set-output 'name=name::gh${{github.run_id}}-${{matrix.base-image}}-${{matrix.postgresql}}'
+          # Create namespace, perhaps 'gh${{github.run_id}}-ubi8-${{matrix.postgresql}}'
+          echo ::set-output 'name=name::gh${{github.run_id}}-ubi8-${{matrix.postgresql}}'
 
       - uses: actions/checkout@v3
         with:
@@ -68,7 +62,7 @@ jobs:
           make -C work/postgres-operator --dry-run deploy
 
       - env:
-          KUTTL_PG_VERSION: ${{ inputs.postgresql }}
+          KUTTL_PG_VERSION: ${{ matrix.postgresql }}
         run: |
           make -C work/postgres-operator --dry-run generate-kuttl check-kuttl
 
@@ -79,7 +73,7 @@ jobs:
           echo kubectl delete namespace '${{ steps.namespace.output.name }}'
 
   test-ubi9:
-    if: ${{ contains(fromJSON(github.event.inputs.base-image-matrix), 'ubi9') }}
+    if: ${{ contains(fromJSON(inputs.base-image-matrix), 'ubi9') }}
     needs:
       - google-gke-setup
       - test-ubi8
@@ -101,4 +95,4 @@ jobs:
       - uses: ./.github/actions/google-gke
         with:
           stage: teardown
-          k8s-release: ${{ github.event.inputs.kubernetes }}
+          k8s-release: ${{ inputs.kubernetes }}
