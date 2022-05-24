@@ -82,6 +82,7 @@ jobs:
     if: ${{ contains(fromJSON(github.event.inputs.base-image-matrix), 'ubi9') }}
     needs:
       - google-gke-setup
+      - test-ubi8
     runs-on: ubuntu-latest
     steps:
       - run: |
