@@ -115,33 +115,3 @@ jobs:
       kubernetes: v1.23
       base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
       postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
-
-  # Gather (fan-in) the tests that ran across various Kubernetes releases.
-  test-matrix:
-    if: ${{ always() }}
-    needs:
-      - test-v1-19
-      - test-v1-20
-      - test-v1-21
-      - test-v1-22
-      - test-v1-23
-    runs-on: ubuntu-latest
-    steps: [{ run: 'true' }]
-
-  google-gke-teardown:
-    if: ${{ always() }}
-    needs:
-      - google-gke-matrix
-      - google-gke-setup
-      - test-matrix
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        kubernetes: ${{ fromJSON(needs.google-gke-matrix.outputs.kubernetes) }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/google-gke
-        with:
-          stage: teardown
-          k8s-release: ${{ matrix.kubernetes }}
