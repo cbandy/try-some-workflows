@@ -23,47 +23,36 @@ on:
 jobs:
   parameters:
     runs-on: ubuntu-latest
+    outputs:
+      kubernetes: ${{ steps.kubernetes.outputs.matrix }}
+      base-image: ${{ steps.components.outputs.base-image }}
+      postgresql: ${{ steps.components.outputs.postgresql }}
     steps:
+      - uses: actions/checkout@v3
+
       - env: { JSON: "${{ toJSON(github.event.inputs) }}" }
         run: |
           echo >> "${GITHUB_STEP_SUMMARY}" '```json'
           jq   >> "${GITHUB_STEP_SUMMARY}" <<< "${JSON}"
           echo >> "${GITHUB_STEP_SUMMARY}" '```'
 
-  component-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      base-image: '["ubi8"]'
-      postgresql: '[10,11,12,13,14]'
-    steps:
-      - run: |
+      - id: components
+        run: |
           # TODO: Compare to event inputs; "all", "latest", etc.
 
-  google-gke-matrix:
-    if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
-    runs-on: ubuntu-latest
-    outputs:
-      kubernetes: ${{ steps.versions.outputs.versions }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: versions
+          echo ::set-output 'name=base-image::["ubi8"]'
+          echo ::set-output 'name=postgresql::[10,11,12,13,14]'
+
+      - id: google-gke
+        if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
         uses: ./.github/actions/google-gke
         with:
           stage: versions
           k8s-release: ${{ github.event.inputs.kubernetes }}
 
-  # Gather (fan-in) the various Kubernetes providers
-  # and the Kubernetes releases they support.
-  kubernetes-matrix:
-    needs:
-      - google-gke-matrix
-    runs-on: ubuntu-latest
-    outputs:
-      kubernetes: ${{ steps.versions.outputs.matrix }}
-    steps:
-      - id: versions
+      - id: kubernetes
         env:
-          GOOGLE_GKE: ${{ needs.google-gke-matrix.outputs.kubernetes }}
+          GOOGLE_GKE: ${{ steps.google-gke.outputs.versions }}
         run: |
           VERSIONS=$(jq -n '$gke + []' \
             --argjson gke "${GOOGLE_GKE:-[]}" \
