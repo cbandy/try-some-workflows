@@ -61,51 +61,51 @@ jobs:
           echo ::set-output "name=matrix::${VERSIONS}"
 
   test-v1-19:
-    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.19') }}
-    needs: [component-matrix, kubernetes-matrix]
+    if: ${{ contains(fromJSON(needs.parameters.outputs.kubernetes), 'v1.19') }}
+    needs: [parameters]
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.19
       kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
-      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
-      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+      base-image-matrix: ${{ needs.parameters.outputs.base-image }}
+      postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
   test-v1-20:
-    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.20') }}
-    needs: [component-matrix, kubernetes-matrix]
+    if: ${{ contains(fromJSON(needs.parameters.outputs.kubernetes), 'v1.20') }}
+    needs: [parameters]
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.20
       kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
-      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
-      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+      base-image-matrix: ${{ needs.parameters.outputs.base-image }}
+      postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
   test-v1-21:
-    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.21') }}
-    needs: [component-matrix, kubernetes-matrix]
+    if: ${{ contains(fromJSON(needs.parameters.outputs.kubernetes), 'v1.21') }}
+    needs: [parameters]
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.21
       kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
-      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
-      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+      base-image-matrix: ${{ needs.parameters.outputs.base-image }}
+      postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
   test-v1-22:
-    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.22') }}
-    needs: [component-matrix, kubernetes-matrix]
+    if: ${{ contains(fromJSON(needs.parameters.outputs.kubernetes), 'v1.22') }}
+    needs: [parameters]
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.22
       kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
-      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
-      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+      base-image-matrix: ${{ needs.parameters.outputs.base-image }}
+      postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
 
   test-v1-23:
-    if: ${{ contains(fromJSON(needs.kubernetes-matrix.outputs.kubernetes), 'v1.23') }}
-    needs: [component-matrix, kubernetes-matrix]
+    if: ${{ contains(fromJSON(needs.parameters.outputs.kubernetes), 'v1.23') }}
+    needs: [parameters]
     uses: ./.github/workflows/kuttl.yaml
     with:
       kubernetes: v1.23
       kubernetes-provider: ${{ github.event.inputs.kubernetes-provider }}
-      base-image-matrix: ${{ needs.component-matrix.outputs.base-image }}
-      postgresql-matrix: ${{ needs.component-matrix.outputs.postgresql }}
+      base-image-matrix: ${{ needs.parameters.outputs.base-image }}
+      postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
