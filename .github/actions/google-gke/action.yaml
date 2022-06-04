@@ -13,8 +13,8 @@ inputs:
     default: latest
     required: true
     description: >
-      Kubernetes release … "v1.20" … FIXME
-      -- "all" or "latest"
+      One or more Kubernetes release(s) e.g. "v1.20",
+      or "all" or "latest"
 
 outputs:
   versions:
@@ -43,15 +43,21 @@ runs:
         CHANNELS=$(yq -o json <<< "${CHANNELS}")
         VERSIONS=$(jq --compact-output 'keys' <<< "${CHANNELS}")
 
-        if [[ "${KUBERNETES}" == 'latest' ]]; then
+        if [[ "${KUBERNETES}" == 'all' ]]; then
+          : # Use the entire JSON array of known versions.
+
+        elif [[ "${KUBERNETES}" == 'latest' ]]; then
+          # Split the JSON array into lines, sort them, and use the greatest.
           VERSIONS=$(jq '.[]' <<< "${VERSIONS}")
           VERSIONS=$(sort -V <<< "${VERSIONS}")
           VERSIONS=$(jq '[last]' <<< "${VERSIONS}" --compact-output --slurp)
 
-        elif [[ "${KUBERNETES}" != 'all' ]]; then
+        else
+          # Split the input words into lines then make a JSON array.
           KUBERNETES=$(xargs -n1 echo <<< "${KUBERNETES//,/ }")
           KUBERNETES=$(jq --raw-input <<< "${KUBERNETES}" | jq --slurp)
 
+          # Look for unexpected input by removing the available versions.
           UNKNOWN=$(jq -n '$ask - $known' \
             --argjson ask "${KUBERNETES}" \
             --argjson known "${VERSIONS}")
@@ -62,9 +68,11 @@ runs:
             exit 1
           fi
 
+          # All the input is valid; use it.
           VERSIONS=$(jq --compact-output <<< "${KUBERNETES}")
         fi
 
+        # Lookup the channel when there is only one selected version.
         if [[ $(jq 'length' <<< "${VERSIONS}") == '1' ]]; then
           CHANNEL=$(yq ".${VERSIONS}" <<< "${CHANNELS}")
         fi
@@ -98,7 +106,7 @@ runs:
           --cluster-version "${KUBERNETES/v}" --node-version "${KUBERNETES/v}" \
           --release-channel "${CHANNEL}"
 
-        jq --compact-output >> "gke-cluster-${KUBERNETES}.json" \
+        jq --compact-output > "gke-cluster-${KUBERNETES}.json" \
           '$ENV | { CLUSTER, PROJECT, ZONE }'
 
     - if: ${{ inputs.stage == 'setup' }}
@@ -119,7 +127,6 @@ runs:
 
         #export $( jq --raw-output < "gke-cluster-${KUBERNETES}.json" \
         #  'to_entries[] | "\(.key)=\(.value)"' )
-
         export $( jq --raw-output <<< '{"CLUSTER":"c","ZONE":"z"}' \
           'to_entries[] | "\(.key)=\(.value)"' )
 
