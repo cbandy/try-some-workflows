@@ -41,7 +41,9 @@ runs:
         # Check Kubernetes versions
 
         CHANNELS=$(curl -sL 'https://update.k3s.io/v1-release/channels')
-        VERSIONS=$(jq '.data | map(.name | select(test("^v[0-9.]+$")))' <<< "${CHANNELS}")
+        VERSIONS=$(jq --compact-output <<< "${CHANNELS}" '
+          .data | map(.name | select(test("^v[0-9.]+$")))
+        ')
 
         if [[ "${KUBERNETES}" == 'all' ]]; then
           : # Use the entire JSON array of known versions.
