@@ -33,9 +33,10 @@ runs:
         # - https://cloud.google.com/kubernetes-engine/docs/release-schedule
         CHANNELS: |
           v1.20: stable
-          v1.21: regular
-          v1.22: rapid
+          v1.21: stable
+          v1.22: regular
           v1.23: rapid
+          v1.24: rapid
         KUBERNETES: ${{ inputs.k8s-release }}
       run: |
         # Check Kubernetes versions

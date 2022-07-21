@@ -109,3 +109,13 @@ jobs:
       kubernetes: v1.23
       base-image-matrix: ${{ needs.parameters.outputs.base-image }}
       postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
+
+  test-v1-24:
+    name: K8s v1.24
+    if: ${{ contains(fromJSON(needs.parameters.outputs.kubernetes), 'v1.24') }}
+    needs: [parameters]
+    uses: ./.github/workflows/kuttl.yaml
+    with:
+      kubernetes: v1.24
+      base-image-matrix: ${{ needs.parameters.outputs.base-image }}
+      postgresql-matrix: ${{ needs.parameters.outputs.postgresql }}
