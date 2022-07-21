@@ -26,6 +26,7 @@ jobs:
   kubernetes-setup:
     runs-on: ubuntu-latest
     outputs:
+      kubeconfig: ${{ steps.gather.outputs.kubeconfig }}
       opaque: ${{ steps.gather.outputs.opaque }}
     steps:
       - uses: actions/checkout@v3
@@ -38,14 +39,22 @@ jobs:
           k8s-release: ${{ inputs.kubernetes }}
 
       - id: gather
+        name: Kubernetes credentials
         env:
+          GOOGLE_GKE_CONFIG: ${{ steps.google-gke.outputs.kubeconfig }}
           GOOGLE_GKE_DATA: ${{ steps.google-gke.outputs.cluster-data }}
         run: |
+          K8S_CONFIG=$(jq -n '$gke + $more' \
+            --argjson gke "${GOOGLE_GKE_CONFIG:-{\}}" \
+            --argjson more "{}" \
+            --compact-output)
+
           K8S_DATA=$(jq -n '$gke + $more' \
             --argjson gke "${GOOGLE_GKE_DATA:-{\}}" \
             --argjson more "{}" \
             --compact-output)
 
+          echo ::set-output "name=kubeconfig::${K8S_CONFIG}"
           echo ::set-output "name=opaque::${K8S_DATA}"
 
   test-ubi8:
@@ -60,16 +69,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # k3d runs Kubernetes in a Docker container on the same machine as the tests.
       - if: ${{ github.event.inputs.kubernetes-provider == 'k3d' }}
         uses: ./.github/actions/k3d
         with:
           stage: setup
           k8s-release: ${{ inputs.kubernetes }}
 
-      - id: namespace
+      - env:
+          K8S_CONFIG: ${{ needs.kubernetes-setup.outputs.kubeconfig }}
         run: |
-          # Create namespace, perhaps 'gh${{github.run_id}}-ubi8-${{matrix.postgresql}}'
-          echo ::set-output 'name=name::gh${{github.run_id}}-ubi8-${{matrix.postgresql}}'
+          install --directory ~/.kube
+          test "${K8S_CONFIG}" != '{}' || exit 0
+          echo "${K8S_CONFIG}" > ~/.kube/config
+
+      - id: namespace
+        env:
+          NAMESPACE: gh${{github.run_id}}-ubi8-${{matrix.postgresql}}
+        run: |
+          echo kubectl create namespace "${NAMESPACE}"
+          echo ::set-output "name=name::${NAMESPACE}"
 
       - uses: actions/checkout@v3
         with:

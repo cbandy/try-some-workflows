@@ -31,6 +31,11 @@ outputs:
     description: >
       JSON object that should be passed back to the teardown stage
 
+  kubeconfig:
+    value: ${{ steps.create.outputs.kubeconfig }}
+    description: >
+      A kubeconfig file in its JSON format
+
 runs:
   using: composite
   steps:
@@ -117,8 +122,16 @@ runs:
           --cluster-version "${KUBERNETES/v}" --node-version "${KUBERNETES/v}" \
           --release-channel "${CHANNEL}"
 
+        echo gcloud container clusters get-credentials "${CLUSTER}" \
+          --internal-ip --zone "${ZONE}"
+
         CLUSTER_DATA=$(jq -n --compact-output '$ENV | { CLUSTER, PROJECT, ZONE }')
         echo ::set-output "name=data::${CLUSTER_DATA}"
+
+        K8S_CONFIG=$(kubectl config view --output json) # TODO: --minify
+        K8S_CONFIG=$(jq --compact-output <<< "${K8S_CONFIG}")
+        echo "::add-mask::${K8S_CONFIG}"
+        echo "::set-output name=kubeconfig::${K8S_CONFIG}"
 
     - if: ${{ inputs.stage == 'teardown' }}
       shell: bash
