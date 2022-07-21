@@ -13,13 +13,14 @@ on:
           - k3d
           - OpenShift
         description: >
-          TODO
+          Kubernetes Provider
       kubernetes:
         default: latest
         required: true
         type: string
         description: >
-          TODO
+          One or more Kubernetes release(s) e.g. "v1.20",
+          or "all" or "latest"
 
 jobs:
   parameters:
