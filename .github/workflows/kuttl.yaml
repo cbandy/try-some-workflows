@@ -25,6 +25,8 @@ on:
 jobs:
   kubernetes-setup:
     runs-on: ubuntu-latest
+    outputs:
+      opaque: ${{ steps.gather.outputs.opaque }}
     steps:
       - uses: actions/checkout@v3
 
@@ -34,6 +36,17 @@ jobs:
         with:
           stage: setup
           k8s-release: ${{ inputs.kubernetes }}
+
+      - id: gather
+        env:
+          GOOGLE_GKE_DATA: ${{ steps.google-gke.outputs.cluster-data }}
+        run: |
+          K8S_DATA=$(jq -n '$gke + $more' \
+            --argjson gke "${GOOGLE_GKE_DATA:-{\}}" \
+            --argjson more "{}" \
+            --compact-output)
+
+          echo ::set-output "name=opaque::${K8S_DATA}"
 
   test-ubi8:
     if: ${{ contains(fromJSON(inputs.base-image-matrix), 'ubi8') }}
@@ -108,3 +121,4 @@ jobs:
         with:
           stage: teardown
           k8s-release: ${{ inputs.kubernetes }}
+          cluster-data: ${{ needs.kubernetes-setup.outputs.opaque }}

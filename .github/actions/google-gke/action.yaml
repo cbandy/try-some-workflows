@@ -16,11 +16,20 @@ inputs:
       One or more Kubernetes release(s) e.g. "v1.20",
       or "all" or "latest"
 
+  cluster-data:
+    description: >
+      JSON object from the setup stage that is required for teardown
+
 outputs:
   versions:
     value: ${{ steps.versions.outputs.matrix }}
     description: >
       JSON array of Kubernetes releases understood by GKE
+
+  cluster-data:
+    value: ${{ steps.create.outputs.data }}
+    description: >
+      JSON object that should be passed back to the teardown stage
 
 runs:
   using: composite
@@ -86,7 +95,8 @@ runs:
       run: |
         echo gcloud auth activate-service-account --key-file=FIXME
 
-    - if: ${{ inputs.stage == 'setup' }}
+    - id: create
+      if: ${{ inputs.stage == 'setup' }}
       shell: bash
       env:
         CHANNEL: ${{ steps.versions.outputs.channel }}
@@ -107,29 +117,19 @@ runs:
           --cluster-version "${KUBERNETES/v}" --node-version "${KUBERNETES/v}" \
           --release-channel "${CHANNEL}"
 
-        jq --compact-output > "gke-cluster-${KUBERNETES}.json" \
-          '$ENV | { CLUSTER, PROJECT, ZONE }'
-
-    - if: ${{ inputs.stage == 'setup' }}
-      shell: bash
-      run: |
-        # TODO: store this information somewhere 👆
-        # ---- a configmap in a kubernetes runner?
+        CLUSTER_DATA=$(jq -n --compact-output '$ENV | { CLUSTER, PROJECT, ZONE }')
+        echo ::set-output "name=data::${CLUSTER_DATA}"
 
     - if: ${{ inputs.stage == 'teardown' }}
       shell: bash
-      run: |
-        # TODO: retrieve the cluster information stored during setup
-
-    - if: ${{ inputs.stage == 'teardown' }}
-      shell: bash
+      env:
+        CLUSTER_DATA: ${{ inputs.cluster-data }}
       run: |
         # Delete GKE cluster
 
-        #export $( jq --raw-output < "gke-cluster-${KUBERNETES}.json" \
-        #  'to_entries[] | "\(.key)=\(.value)"' )
-        export $( jq --raw-output <<< '{"CLUSTER":"c","ZONE":"z"}' \
-          'to_entries[] | "\(.key)=\(.value)"' )
+        export $(jq --raw-output <<< "${CLUSTER_DATA}" '
+          to_entries[] | "\(.key)=\(.value)"
+        ')
 
         echo gcloud container clusters delete "${CLUSTER}" \
           --project "${PROJECT}" --zone "${ZONE}" \
