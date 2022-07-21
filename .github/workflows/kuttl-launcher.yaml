@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - GKE
+          - k3d
           - OpenShift
         description: >
           TODO
@@ -50,12 +51,21 @@ jobs:
           stage: versions
           k8s-release: ${{ github.event.inputs.kubernetes }}
 
+      - id: k3d
+        if: ${{ github.event.inputs.kubernetes-provider == 'k3d' }}
+        uses: ./.github/actions/k3d
+        with:
+          stage: versions
+          k8s-release: ${{ github.event.inputs.kubernetes }}
+
       - id: kubernetes
         env:
           GOOGLE_GKE: ${{ steps.google-gke.outputs.versions }}
+          K3D: ${{ steps.k3d.outputs.versions }}
         run: |
-          VERSIONS=$(jq -n '$gke + []' \
+          VERSIONS=$(jq -n '$gke + $k3d' \
             --argjson gke "${GOOGLE_GKE:-[]}" \
+            --argjson k3d "${K3D:-[]}" \
             --compact-output)
 
           echo ::set-output "name=matrix::${VERSIONS}"
