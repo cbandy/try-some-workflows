@@ -126,7 +126,8 @@ runs:
           --internal-ip --zone "${ZONE}"
 
         CLUSTER_DATA=$(jq -n --compact-output '$ENV | { CLUSTER, PROJECT, ZONE }')
-        echo ::set-output "name=data::${CLUSTER_DATA}"
+        echo "::add-mask::${CLUSTER_DATA}"
+        echo "::set-output name=data::${CLUSTER_DATA}"
 
         K8S_CONFIG=$(kubectl config view --output json) # TODO: --minify
         K8S_CONFIG=$(jq --compact-output <<< "${K8S_CONFIG}")
