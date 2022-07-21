@@ -23,12 +23,14 @@ on:
           JSON array of PostgreSQL major versions to test
 
 jobs:
-  google-gke-setup:
-    if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
+  kubernetes-setup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/google-gke
+
+      - id: google-gke
+        if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
+        uses: ./.github/actions/google-gke
         with:
           stage: setup
           k8s-release: ${{ inputs.kubernetes }}
@@ -36,7 +38,7 @@ jobs:
   test-ubi8:
     if: ${{ contains(fromJSON(inputs.base-image-matrix), 'ubi8') }}
     needs:
-      - google-gke-setup
+      - kubernetes-setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -82,7 +84,7 @@ jobs:
   test-ubi9:
     if: ${{ contains(fromJSON(inputs.base-image-matrix), 'ubi9') }}
     needs:
-      - google-gke-setup
+      - kubernetes-setup
       - test-ubi8
     runs-on: ubuntu-latest
     steps:
@@ -90,16 +92,19 @@ jobs:
           echo >&2 Not implemented!
           exit 1
 
-  google-gke-teardown:
+  kubernetes-teardown:
     if: ${{ always() }}
     needs:
-      - google-gke-setup
+      - kubernetes-setup
       - test-ubi8
       - test-ubi9
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/google-gke
+
+      - id: google-gke
+        if: ${{ github.event.inputs.kubernetes-provider == 'GKE' }}
+        uses: ./.github/actions/google-gke
         with:
           stage: teardown
           k8s-release: ${{ inputs.kubernetes }}
