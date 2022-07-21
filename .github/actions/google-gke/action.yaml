@@ -110,8 +110,12 @@ runs:
         # Create GKE cluster (${{ inputs.k8s-release }})
 
         export CLUSTER="ci-v5-${CHANNEL:?}-k${KUBERNETES//.}-gh${GITHUB_RUN_ID}"
-        export PROJECT='FIXME'
+        export PROJECT='project-FIXME'
         export ZONE='us-east1-b'
+
+        # FIXME: cannot mask data and pass it between jobs (a44652f)
+        # - https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#masking-a-value-in-log
+        echo "::add-mask::${PROJECT}"
 
         echo gcloud container clusters create "${CLUSTER}" \
           --project "${PROJECT}" --zone "${ZONE}" \
@@ -126,9 +130,9 @@ runs:
           --internal-ip --zone "${ZONE}"
 
         CLUSTER_DATA=$(jq -n --compact-output '$ENV | { CLUSTER, PROJECT, ZONE }')
-        echo "::add-mask::${CLUSTER_DATA}"
         echo "::set-output name=data::${CLUSTER_DATA}"
 
+        # FIXME: cannot mask data and pass it between jobs (b4436dc)
         K8S_CONFIG=$(kubectl config view --output json) # TODO: --minify
         K8S_CONFIG=$(jq --compact-output <<< "${K8S_CONFIG}")
         echo "::add-mask::${K8S_CONFIG}"
